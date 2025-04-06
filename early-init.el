@@ -1,7 +1,6 @@
 (setq package-enable-at-startup nil
       inhibit-splash-screen t
       inhibit-startup-message t
-      inhibit-startup-echo-area-message t
       native-comp-async-report-warnings-errors ':silent
       byte-compile-warnings nil
       warning-minimum-level :error)

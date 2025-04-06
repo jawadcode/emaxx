@@ -42,6 +42,8 @@
                                  :width 'normal
                                  :slant 'normal))))
 
+(setq inhibit-startup-echo-area-message "qak")
+
 ;; == ELPACA INITIALISATION ==
 
 (defvar elpaca-installer-version 0.10)
@@ -228,7 +230,22 @@
                  (display-line-numbers-mode)
                  (hl-line-mode)
                  (electric-pair-mode)
-                 (indent-tabs-mode -1)))
+                 (indent-tabs-mode -1)
+                 (setq-default tab-width 4)))
+  :custom
+  ;; === BACKUP FILES CONFIG ===
+  (backup-by-copying t)                           ; don't clobber symlinks
+  (backup-directory-alist '(("." .
+                             (file-name-concat
+                              (getenv "HOME")
+                              ".emacs-saves/")))) ; don't litter my fs tree
+  (delete-old-versions t)
+  (kept-new-versions 6)
+  (kept-old-versions 2)
+  (version-control t)                             ; use versioned backups
+
+  ;; Autosave files config
+  (auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
   :bind (("C-+" . text-scale-increase)
          ("C--" . text-scale-decrease)
          ("C-<wheel-up>" . text-scale-increase)
@@ -286,11 +303,21 @@
 
 (use-package ligature
   :config
-  ;; Enable all Iosevka ligatures in programming modes
-  (ligature-set-ligatures 'prog-mode '("<---" "<--"  "<<-" "<-" "->" "-->" "--->" "<->" "<-->" "<--->" "<---->" "<!--"
-                                       "<==" "<===" "<=" "=>" "=>>" "==>" "===>" ">=" "<=>" "<==>" "<===>" "<====>" "<!---"
-                                       "<~~" "<~" "~>" "~~>" "::" ":::" "==" "!=" "===" "!=="
-                                       ":=" ":-" ":+" "<*" "<*>" "*>" "<|" "<|>" "|>" "+:" "-:" "=:" "<******>" "++" "+++"))
+  (ligature-set-ligatures
+   'prog-mode
+   '("|||>" "<|||" "<==>" "<!--" "####" "~~>" "***" "||=" "||>"
+     ":::" "::=" "=:=" "===" "==>" "=!=" "=>>" "=<<" "=/=" "!=="
+     "!!." ">=>" ">>=" ">>>" ">>-" ">->" "->>" "-->" "---" "-<<"
+     "<~~" "<~>" "<*>" "<||" "<|>" "<$>" "<==" "<=>" "<=<" "<->"
+     "<--" "<-<" "<<=" "<<-" "<<<" "<+>" "</>" "###" "#_(" "..<"
+     "..." "+++" "/==" "///" "_|_" "www" "&&" "^=" "~~" "~@" "~="
+     "~>" "~-" "**" "*>" "*/" "||" "|}" "|]" "|=" "|>" "|-" "{|"
+     "[|" "]#" "::" ":=" ":>" ":<" "$>" "==" "=>" "!=" "!!" ">:"
+     ">=" ">>" ">-" "-~" "-|" "->" "--" "-<" "<~" "<*" "<|" "<:"
+     "<$" "<=" "<>" "<-" "<<" "<+" "</" "#{" "#[" "#:" "#=" "#!"
+     "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
+     "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"
+     "\\\\" "://"))
   ;; Enables ligature checks globally in all buffers. You can also do it
   ;; per mode with `ligature-mode'.
   (global-ligature-mode t))
@@ -361,8 +388,19 @@
 
 (use-package eldoc-box :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode))
 
-(add-hook 'c-ts-mode-hook   #'eglot-ensure)
-(add-hook 'c++-ts-mode-hook #'eglot-ensure)
+(add-hook 'c-ts-mode-hook
+          (lambda ()
+            (echo "testing testing 123")
+            (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
+            (setq c-ts-mode-indent-offset 4)
+            (eglot-ensure)))
+
+(add-hook 'c++-ts-mode-hook
+          (lambda ()
+            (setq-default c++-ts-mode-indent-style #'linux)
+            (setq c++-ts-mode-indent-offset 4)
+            (eglot-ensure)))
+
 (add-hook 'js-ts-mode-hook  #'eglot-ensure)
 
 (use-package nix-ts-mode
@@ -375,14 +413,15 @@
   :hook (rust-ts-mode . eglot-ensure))
 
 (use-package tuareg
-  :config
-  (add-hook 'tuareg-mode-hook
-            (lambda()
-              (setq-local comment-style 'multi-line)
-              (setq-local comment-continue "   ")
-              (when (functionp 'prettify-symbols-mode)
-                (prettify-symbols-mode))
-              (setq tuareg-mode-name "🐫"))))
+  :hook
+  (tuareg-mode . (lambda()
+                   (setq-local comment-style 'multi-line)
+                   (setq-local comment-continue "   ")
+                   (when (functionp 'prettify-symbols-mode)
+                     (prettify-symbols-mode))
+                   (eglot-ensure))))
+
+;; (use-package ocaml-ts-mode :ensure ( :host github :repo "terrateamio/ocaml-ts-mode"))
 
 (use-package haskell-ts-mode
   :mode "\\.hs\\'"
