@@ -390,7 +390,6 @@
 
 (add-hook 'c-ts-mode-hook
           (lambda ()
-            (echo "testing testing 123")
             (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
             (setq c-ts-mode-indent-offset 4)
             (eglot-ensure)))
