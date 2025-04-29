@@ -44,6 +44,8 @@
 
 (setq inhibit-startup-echo-area-message "qak")
 
+(load-theme 'leuven)
+
 ;; == ELPACA INITIALISATION ==
 
 (defvar elpaca-installer-version 0.10)
@@ -96,9 +98,9 @@
   (mood-line-glyph-alist mood-line-glyphs-fira-code)
   :config (mood-line-mode))
 
-(use-package monokai-theme
-  :custom (monokai-foreground "#FCFCFC")
-  :config (load-theme 'monokai t))
+;; (use-package monokai-theme
+;;   :custom (monokai-foreground "#FCFCFC")
+;;   :config (load-theme 'monokai t))
 
 (use-package which-key
   :custom
