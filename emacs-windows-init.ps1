@@ -1,9 +1,13 @@
-Remove-Item -Recurse -Force "$env:USERPROFILE\.emacs.d"
+$emacsDir = "$env:APPDATA\.emacs.d"
 
-New-Item -ItemType Directory "$env:USERPROFILE\.emacs.d"
+if (Test-Path -Path $emacsDir) { Remove-Item -Recurse -Force $emacsDir }
 
-New-Item "$env:USERPROFILE\.emacs.d\codemacs\early-init.el" -ItemType SymbolicLink -Target "$(Get-Location)\codemacs\early-init.el"
-New-Item "$env:USERPROFILE\.emacs.d\codemacs\init.el" -ItemType SymbolicLink -Target "$(Get-Location)\codemacs\init.el"
-New-Item "$env:USERPROFILE\.emacs.d\codemacs\load-env-vars.el" -ItemType SymbolicLink -Target "$(Get-Location)\codemacs\load-env-vars.el"
+New-Item -ItemType Directory $emacsDir
+
+New-Item "$emacsDir\early-init.el" -ItemType SymbolicLink -Target "$(Get-Location)\early-init.el"
+New-Item "$emacsDir\init.el" -ItemType SymbolicLink -Target "$(Get-Location)\init.el"
+New-Item "$emacsDir\load-env-vars.el" -ItemType SymbolicLink -Target "$(Get-Location)\load-env-vars.el"
+
+.\get-grammars.ps1
 
 emacs.exe --no-init-file --load .\gen-env-file.el
