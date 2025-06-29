@@ -1,3 +1,5 @@
+;; Early Initialisation -*- lexical-binding: t -*-
+
 (setq package-enable-at-startup nil
       inhibit-splash-screen t
       inhibit-startup-message t
