@@ -3,14 +3,15 @@
       inhibit-startup-message t
       native-comp-async-report-warnings-errors ':silent
       byte-compile-warnings nil
-      warning-minimum-level :error)
+      warning-minimum-level :error
+      read-process-output-max (* 1024 1024))
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 
-;; (add-to-list 'default-frame-alist '(foreground-color . "#FCFCFC"))
-;; (add-to-list 'default-frame-alist '(background-color . "#272822"))
+(add-to-list 'default-frame-alist '(foreground-color . "#FCFCFC"))
+(add-to-list 'default-frame-alist '(background-color . "#272822"))
 
 (set-language-environment "UTF-8")
 ;; Undoes `set-language-environment`'s changes
@@ -19,3 +20,5 @@
 ;; break things
 (unless (eq system-type 'windows-nt)
   (setq selection-coding-system 'utf-8))
+
+(setenv "LSP_USE_PLISTS" "true")

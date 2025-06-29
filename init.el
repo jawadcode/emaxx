@@ -44,11 +44,9 @@
 
 (setq inhibit-startup-echo-area-message "qak")
 
-(load-theme 'leuven)
-
 ;; == ELPACA INITIALISATION ==
 
-(defvar elpaca-installer-version 0.10)
+(defvar elpaca-installer-version 0.11)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
 (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
@@ -93,10 +91,19 @@
 
 ;; == CORE PACKAGES (EAGERLY LOADED) ==
 
-(use-package mood-line
+(use-package doom-themes
+  :ensure t
   :custom
-  (mood-line-glyph-alist mood-line-glyphs-fira-code)
-  :config (mood-line-mode))
+  (doom-themes-enable-bold t)
+  (doom-themes-enable-italic t)
+  :config (load-theme 'doom-monokai-classic t))
+
+;; (use-package mood-line
+;;   :custom
+;;   (mood-line-glyph-alist mood-line-glyphs-fira-code)
+;;   :config (mood-line-mode))
+
+(use-package doom-modeline :hook (after-init . doom-modeline-mode))
 
 ;; (use-package monokai-theme
 ;;   :custom (monokai-foreground "#FCFCFC")
@@ -292,6 +299,12 @@
   :custom (treesit-auto-install 'p)
   :config
   (treesit-auto-add-to-auto-mode-alist 'all)
+  (setq emaxx/vue-tsauto-recipe
+        (make-treesit-auto-recipe
+         :lang 'vue
+         :ts-mode 'vue-ts-mode
+         :url "https://github.com/ikatyang/tree-sitter-vue"))
+  (add-to-list 'treesit-auto-recipe-list emaxx/vue-tsauto-recipe)
   ;; (setq emaxx/ocaml-tsauto-recipe
   ;;       (make-treesit-auto-recipe
   ;;        :lang 'ocaml
@@ -360,58 +373,72 @@
   :hook (elpaca-after-init . envrc-global-mode)
   :config (meow-leader-define-key (cons "e" envrc-command-map)))
 
-(use-package eglot
-  :ensure nil
-  :init (fset #'jsonrpc--log-event #'ignore)
-  :config
-  (when (eq system-type 'gnu/linux)
-    (setq-default eglot-workspace-configuration
-                  '(:nil (:formatting (:command ["alejandra"]))))
-    (add-to-list 'eglot-server-programs '(nix-ts-mode . ("nil"))))
-  (add-to-list 'eglot-server-programs
-               '(haskell-ts-mode . ("haskell-language-server-wrapper" "--lsp")))
-  :hook (python-ts-mode . eglot-ensure)
-  :bind ( :map eglot-mode-map
-          ("C-c l d" . xref-find-definitions)
-          ("C-c l a" . eglot-code-actions)
-          ("C-c l c" . eglot-code-action-quickfix)
-          ("C-c l r" . eglot-rename)
-          ("C-c l f" . eglot-format)
-          ("C-c l n" . eglot-reconnect)
-          ("C-c l i" . consult-imenu))
-  :commands eglot-ensure)
+(use-package lsp-mode
+  :custom
+  (lsp-keymap-prefix "C-c l")
+  (lsp-idle-delay 0.5)
+  (lsp-nix-nil-formatter ["alejandra"])
+  :hook (lsp-mode . lsp-enable-which-key-integration)
+  :commands (lsp lsp-deferred))
 
-(use-package eglot-booster
-  :ensure (eglot-booster
-           :host github
-           :repo "jdtsmith/eglot-booster")
-  :after eglot
-  :config (eglot-booster-mode))
+(use-package lsp-ui :commands lsp-ui-mode)
 
-(use-package eldoc-box :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode))
+(defun lsp-booster--advice-json-parse (old-fn &rest args)
+  "Try to parse bytecode instead of json."
+  (or
+   (when (equal (following-char) ?#)
+     (let ((bytecode (read (current-buffer))))
+       (when (byte-code-function-p bytecode)
+         (funcall bytecode))))
+   (apply old-fn args)))
+(advice-add (if (progn (require 'json)
+                       (fboundp 'json-parse-buffer))
+                'json-parse-buffer
+              'json-read)
+            :around
+            #'lsp-booster--advice-json-parse)
+
+(defun lsp-booster--advice-final-command (old-fn cmd &optional test?)
+  "Prepend emacs-lsp-booster command to lsp CMD."
+  (let ((orig-result (funcall old-fn cmd test?)))
+    (if (and (not test?)                             ;; for check lsp-server-present?
+             (not (file-remote-p default-directory)) ;; see lsp-resolve-final-command, it would add extra shell wrapper
+             lsp-use-plists
+             (not (functionp 'json-rpc-connection))  ;; native json-rpc
+             (executable-find "emacs-lsp-booster"))
+        (progn
+          (when-let ((command-from-exec-path (executable-find (car orig-result))))  ;; resolve command from exec-path (in case not found in $PATH)
+            (setcar orig-result command-from-exec-path))
+          (message "Using emacs-lsp-booster for %s!" orig-result)
+          (cons "emacs-lsp-booster" orig-result))
+      orig-result)))
+(advice-add 'lsp-resolve-final-command :around #'lsp-booster--advice-final-command)
+
+(use-package dap-mode)
 
 (add-hook 'c-ts-mode-hook
           (lambda ()
             (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
             (setq c-ts-mode-indent-offset 4)
-            (eglot-ensure)))
+            (lsp-deferred)))
 
 (add-hook 'c++-ts-mode-hook
           (lambda ()
             (setq-default c++-ts-mode-indent-style #'linux)
             (setq c++-ts-mode-indent-offset 4)
-            (eglot-ensure)))
+            (lsp-deferred)))
 
-(add-hook 'js-ts-mode-hook  #'eglot-ensure)
+(add-hook 'js-ts-mode-hook         #'lsp-deferred)
+(add-hook 'typescript-ts-mode-hook #'lsp-deferred)
 
 (use-package nix-ts-mode
   :if (eq system-type 'gnu/linux)
   :mode "\\.nix\\'"
-  :hook (nix-ts-mode . eglot-ensure))
+  :hook (nix-ts-mode . lsp-deferred))
 
 (use-package rust-mode
   :init (setq rust-mode-treesitter-derive t)
-  :hook (rust-ts-mode . eglot-ensure))
+  :hook (rust-ts-mode . lsp-deferred))
 
 (use-package tuareg
   :hook
@@ -420,18 +447,34 @@
                    (setq-local comment-continue "   ")
                    (when (functionp 'prettify-symbols-mode)
                      (prettify-symbols-mode))
-                   (eglot-ensure))))
-
-;; (use-package ocaml-ts-mode :ensure ( :host github :repo "terrateamio/ocaml-ts-mode"))
+                   (lsp-deferred))))
 
 (use-package haskell-ts-mode
   :mode "\\.hs\\'"
   :custom (haskell-ts-highlight-signature t)
   :hook
-  (haskell-ts-mode . eglot-ensure)
+  (haskell-ts-mode . lsp-deferred)
   (haskell-ts-mode . prettify-symbols-mode))
 
+(use-package zig-ts-mode
+  :mode "\\.zig\\'"
+  :hook (zig-ts-mode . lsp-deferred))
+
 (use-package markdown-mode :mode ("README\\.md\\'" . gfm-mode))
+
+(add-hook 'asm-mode-hook #'lsp-deferred)
+
+(use-package nasm-mode
+  :mode "\\.nasm\\'"
+  :hook (nasm-mode . lsp-deferred))
+
+;; === WEBSHIT ===
+
+(use-package php-mode :hook (php-ts-mode . lsp-deferred))
+
+(use-package vue-ts-mode
+  :elpaca (vue-ts-mode :host github :repo "8uff3r/vue-ts-mode")
+  :mode "\\.vue\\'")
 
 ;; === MAGIT ===
 
