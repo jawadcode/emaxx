@@ -105,7 +105,7 @@
 ;;   (mood-line-glyph-alist mood-line-glyphs-fira-code)
 ;;   :config (mood-line-mode))
 
-(use-package doom-modeline :hook (after-init . doom-modeline-mode))
+(use-package doom-modeline :hook (elpaca-after-init . doom-modeline-mode))
 
 ;; (use-package monokai-theme
 ;;   :custom (monokai-foreground "#FCFCFC")
@@ -475,7 +475,7 @@
 (use-package php-mode :hook (php-ts-mode . lsp-deferred))
 
 (use-package vue-ts-mode
-  :elpaca (vue-ts-mode :host github :repo "8uff3r/vue-ts-mode")
+  :ensure (vue-ts-mode :host github :repo "8uff3r/vue-ts-mode")
   :mode "\\.vue\\'")
 
 ;; === MAGIT ===
