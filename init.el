@@ -1,26 +1,10 @@
-;; Initialisation -*- lexical-binding: t -*-
+; Initialisation -*- lexical-binding: t -*-
 
 (defun set-font ()
-  (set-face-font 'default
-                 (font-spec
-                  :family "Iosevka Term SS07"
-                  :size 18
-                  :weight 'normal
-                  :width 'normal
-                  :slant 'normal))
-  (set-face-font 'fixed-pitch
-                 (font-spec
-                  :family "Iosevka Term SS07"
-                  :size 18
-                  :weight 'normal
-                  :width 'normal
-                  :slant 'normal))
-  (set-face-font 'variable-pitch
-                 (font-spec
-                  :family "Roboto"
-                  :size 18
-                  :weight 'normal
-                  :width 'normal)))
+  (progn
+    (set-face-attribute 'default nil :family "Iosevka Term SS07" :height 135)
+    (set-face-attribute 'fixed-pitch nil :family "Iosevka Term SS07")
+    (set-face-attribute 'variable-pitch nil :family "IBM Plex Serif")))
 
 (if (daemonp)
     (add-hook 'server-after-make-frame-hook #'set-font)
@@ -30,19 +14,11 @@
     (when (member "Noto Emoji" (font-family-list))
       (set-fontset-font t
                         'emoji
-                        (font-spec :family "Noto Emoji"
-                                   :size 18
-                                   :weight 'normal
-                                   :width 'normal
-                                   :slant 'normal)))
+                        (font-spec :family "Noto Emoji" :size 18)))
   (when (member "Noto Color Emoji" (font-family-list))
     (set-fontset-font t
                       'emoji
-                      (font-spec :family "Noto Color Emoji"
-                                 :size 18
-                                 :weight 'normal
-                                 :width 'normal
-                                 :slant 'normal))))
+                      (font-spec :family "Noto Color Emoji" :size 18))))
 
 (setq inhibit-startup-echo-area-message "qak")
 
@@ -100,16 +76,21 @@
   (doom-themes-enable-italic t)
   :config (load-theme 'doom-monokai-classic t))
 
-;; (use-package mood-line
-;;   :custom
-;;   (mood-line-glyph-alist mood-line-glyphs-fira-code)
-;;   :config (mood-line-mode))
-
 (use-package doom-modeline :hook (elpaca-after-init . doom-modeline-mode))
 
 ;; (use-package monokai-theme
 ;;   :custom (monokai-foreground "#FCFCFC")
 ;;   :config (load-theme 'monokai t))
+
+(use-package mixed-pitch
+  :hook (text-mode . mixed-pitch-mode))
+
+;; (use-package fixed-pitch
+;;   :ensure (fixed-pitch :type git :host github :repo "cstby/fixed-pitch-mode")
+;;   :custom
+;;   (fixed-pitch-whitelist-hooks
+;;    '(which-key-faces markdown-code-face markdown-inline-code-face))
+;;   (fixed-pitch-use-extended-default t))
 
 (use-package which-key
   :custom
@@ -268,7 +249,8 @@
   (global-tab-line-mode)
   (window-divider-mode))
 
-(use-package mixed-pitch :hook (text-mode . mixed-pitch-mode))
+(use-package fixed-pitch
+  :ensure (fixed-pitch :type git :host github :repo "cstby/fixed-pitch-mode"))
 
 ;; == MINIBUFFER CONFIGURATION ==
 
@@ -301,21 +283,6 @@
   :custom (treesit-auto-install 'p)
   :config
   (treesit-auto-add-to-auto-mode-alist 'all)
-  (setq emaxx/vue-tsauto-recipe
-        (make-treesit-auto-recipe
-         :lang 'vue
-         :ts-mode 'vue-ts-mode
-         :url "https://github.com/ikatyang/tree-sitter-vue"))
-  (add-to-list 'treesit-auto-recipe-list emaxx/vue-tsauto-recipe)
-  ;; (setq emaxx/ocaml-tsauto-recipe
-  ;;       (make-treesit-auto-recipe
-  ;;        :lang 'ocaml
-  ;;        :ts-mode 'ocaml-ts-mode
-  ;;        :remap '(tuareg-mode)
-  ;;        :url "https://github.com/tree-sitter/tree-sitter-ocaml"
-  ;;        :revision "master"
-  ;;        :source-dir "src"))
-  ;; (add-to-list 'treesit-auto-recipe-list emaxx/ocaml-tsauto-recipe)
   (global-treesit-auto-mode))
 
 (use-package ligature
@@ -335,8 +302,6 @@
      "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
      "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"
      "\\\\" "://"))
-  ;; Enables ligature checks globally in all buffers. You can also do it
-  ;; per mode with `ligature-mode'.
   (global-ligature-mode t))
 
 (use-package hl-todo
@@ -377,11 +342,11 @@
 
 (use-package lsp-mode
   :custom
-  (lsp-keymap-prefix "C-c l")
+  (lsp-keymap-prefix "C-l")
   (lsp-idle-delay 0.5)
   (lsp-nix-nil-formatter ["alejandra"])
   :hook (lsp-mode . lsp-enable-which-key-integration)
-  :commands (lsp lsp-deferred))
+  :commands (lsp-mode lsp lsp-deferred))
 
 (use-package lsp-ui :commands lsp-ui-mode)
 
@@ -462,21 +427,15 @@
   :mode "\\.zig\\'"
   :hook (zig-ts-mode . lsp-deferred))
 
-(use-package markdown-mode :mode ("README\\.md\\'" . gfm-mode))
+(use-package markdown-mode
+  :mode ("README\\.md\\'" . gfm-mode)
+  :custom (markdown-fontify-code-blocks-natively t))
 
 (add-hook 'asm-mode-hook #'lsp-deferred)
 
 (use-package nasm-mode
   :mode "\\.nasm\\'"
   :hook (nasm-mode . lsp-deferred))
-
-;; === WEBSHIT ===
-
-(use-package php-mode :hook (php-ts-mode . lsp-deferred))
-
-(use-package vue-ts-mode
-  :ensure (vue-ts-mode :host github :repo "8uff3r/vue-ts-mode")
-  :mode "\\.vue\\'")
 
 ;; === MAGIT ===
 

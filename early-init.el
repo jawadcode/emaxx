@@ -3,7 +3,7 @@
 (setq package-enable-at-startup nil
       inhibit-splash-screen t
       inhibit-startup-message t
-      native-comp-async-report-warnings-errors ':silent
+      native-comp-async-report-warnings-errors 'silent
       byte-compile-warnings nil
       warning-minimum-level :error
       read-process-output-max (* 1024 1024))
