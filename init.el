@@ -74,7 +74,7 @@
   :custom
   (doom-themes-enable-bold t)
   (doom-themes-enable-italic t)
-  :config (load-theme 'doom-monokai-classic t))
+  :config (load-theme 'modus-vivendi t))
 
 (use-package doom-modeline :hook (elpaca-after-init . doom-modeline-mode))
 
