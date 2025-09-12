@@ -12,8 +12,8 @@
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 
-(add-to-list 'default-frame-alist '(foreground-color . "#FFFFFF"))
-(add-to-list 'default-frame-alist '(background-color . "#000000"))
+;; (add-to-list 'default-frame-alist '(foreground-color . "#FFFFFF"))
+;; (add-to-list 'default-frame-alist '(background-color . "#000000"))
 
 (set-language-environment "UTF-8")
 ;; Undoes `set-language-environment`'s changes

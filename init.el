@@ -69,28 +69,47 @@
 
 ;; == CORE PACKAGES (EAGERLY LOADED) ==
 
-(use-package doom-themes
-  :ensure t
-  :custom
-  (doom-themes-enable-bold t)
-  (doom-themes-enable-italic t)
-  :config (load-theme 'modus-vivendi t))
-
-(use-package doom-modeline :hook (elpaca-after-init . doom-modeline-mode))
-
-;; (use-package monokai-theme
-;;   :custom (monokai-foreground "#FCFCFC")
-;;   :config (load-theme 'monokai t))
-
-(use-package mixed-pitch
-  :hook (text-mode . mixed-pitch-mode))
-
-;; (use-package fixed-pitch
-;;   :ensure (fixed-pitch :type git :host github :repo "cstby/fixed-pitch-mode")
+;; (use-package doom-themes
+;;   :ensure t
 ;;   :custom
-;;   (fixed-pitch-whitelist-hooks
-;;    '(which-key-faces markdown-code-face markdown-inline-code-face))
-;;   (fixed-pitch-use-extended-default t))
+;;   (doom-themes-enable-bold t)
+;;   (doom-themes-enable-italic t)
+;;   :config (load-theme 'doom-tokyo-night t))
+
+(use-package standard-themes
+  :custom
+  (standard-themes-bold-constructs t)
+  (standard-themes-italic-constructs t)
+  (standard-themes-disable-other-themes t)
+  (standard-themes-mixed-fonts t)
+  (standard-themes-variable-pitch-ui t)
+  (standard-themes-prompts '(extrabold italic))
+  ;; (standard-themes-to-toggle '(standard-light standard-dark))
+  ;; (standard-themes-to-rotate '(standard-light standard-light-tinted standard-dark standard-dark-tinted))
+  (standard-themes-headings
+   '((0 . (variable-pitch light 1.9))
+     (1 . (variable-pitch light 1.8))
+     (2 . (variable-pitch light 1.7))
+     (3 . (variable-pitch semilight 1.6))
+     (4 . (variable-pitch semilight 1.5))
+     (5 . (variable-pitch 1.4))
+     (6 . (variable-pitch 1.3))
+     (7 . (variable-pitch 1.2))
+     (agenda-date . (1.3))
+     (agenda-structure . (variable-pitch light 1.8))
+     (t . (variable-pitch 1.1))))
+  :config (standard-themes-load-theme 'standard-light-tinted)
+  ;; :bind (("<f5>"   . standard-themes-toggle)
+  ;;        ("M-<f5>" . standard-themes-rotate))
+  )
+
+
+(use-package mood-line
+  :custom (mood-line-glyph-alist mood-line-glyphs-fira-code)
+  :config (mood-line-mode))
+
+;; (use-package mixed-pitch
+;;   :hook (text-mode . mixed-pitch-mode))
 
 (use-package which-key
   :custom
@@ -309,6 +328,7 @@
   :hook (prog-mode . hl-todo-mode))
 
 (use-package consult-todo
+  :after meow
   :demand t
   :bind ("C-c t" . consult-todo-project))
 
@@ -330,6 +350,8 @@
 
 (use-package yasnippet-snippets)
 
+;; These two are only for NixOS
+
 (use-package inheritenv
   :if (eq system-type 'gnu/linux)
   :ensure ( :wait t))
@@ -337,75 +359,117 @@
 (use-package envrc
   :if (eq system-type 'gnu/linux)
   :ensure ( :wait t)
+  :after meow
   :hook (elpaca-after-init . envrc-global-mode)
-  :config (meow-leader-define-key (cons "e" envrc-command-map)))
+  :bind ("C-c e" . envrc-command-map))
 
-(use-package lsp-mode
-  :custom
-  (lsp-keymap-prefix "C-l")
-  (lsp-idle-delay 0.5)
-  (lsp-nix-nil-formatter ["alejandra"])
-  :hook (lsp-mode . lsp-enable-which-key-integration)
-  :commands (lsp-mode lsp lsp-deferred))
+(use-package eglot
+  :ensure nil ; Built-in package
+  :init (fset #'jsonrpc--log-event #'ignore)
+  :config
+  (when (eq system-type 'gnu/linux)
+    (setq-default eglot-workspace-configuration
+                  '(:nil (:formatting (:command ["alejandra"]))))
+    (add-to-list 'eglot-server-programs '(nix-ts-mode . ("nil"))))
+  (add-to-list 'eglot-server-programs
+               '(toml-ts-mode . ("taplo" "lsp" "stdio")))
+  (add-to-list 'eglot-server-programs
+               '(haskell-ts-mode . ("haskell-language-server-wrapper" "--lsp")))
+  :hook (python-ts-mode . eglot-ensure)
+  :bind ( :map eglot-mode-map
+          ("C-c l d" . xref-find-definitions)
+          ("C-c l a" . eglot-code-actions)
+          ("C-c l c" . eglot-code-action-quickfix)
+          ("C-c l r" . eglot-rename)
+          ("C-c l f" . eglot-format)
+          ("C-c l n" . eglot-reconnect)
+          ("C-c l i" . consult-imenu))
+  :commands eglot-ensure)
 
-(use-package lsp-ui :commands lsp-ui-mode)
+(use-package eglot-booster
+  :ensure (eglot-booster
+           :host github
+           :repo "jdtsmith/eglot-booster")
+  :after eglot
+  :config (eglot-booster-mode))
 
-(defun lsp-booster--advice-json-parse (old-fn &rest args)
-  "Try to parse bytecode instead of json."
-  (or
-   (when (equal (following-char) ?#)
-     (let ((bytecode (read (current-buffer))))
-       (when (byte-code-function-p bytecode)
-         (funcall bytecode))))
-   (apply old-fn args)))
-(advice-add (if (progn (require 'json)
-                       (fboundp 'json-parse-buffer))
-                'json-parse-buffer
-              'json-read)
-            :around
-            #'lsp-booster--advice-json-parse)
+(use-package eldoc-box :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode))
 
-(defun lsp-booster--advice-final-command (old-fn cmd &optional test?)
-  "Prepend emacs-lsp-booster command to lsp CMD."
-  (let ((orig-result (funcall old-fn cmd test?)))
-    (if (and (not test?)                             ;; for check lsp-server-present?
-             (not (file-remote-p default-directory)) ;; see lsp-resolve-final-command, it would add extra shell wrapper
-             lsp-use-plists
-             (not (functionp 'json-rpc-connection))  ;; native json-rpc
-             (executable-find "emacs-lsp-booster"))
-        (progn
-          (when-let ((command-from-exec-path (executable-find (car orig-result))))  ;; resolve command from exec-path (in case not found in $PATH)
-            (setcar orig-result command-from-exec-path))
-          (message "Using emacs-lsp-booster for %s!" orig-result)
-          (cons "emacs-lsp-booster" orig-result))
-      orig-result)))
-(advice-add 'lsp-resolve-final-command :around #'lsp-booster--advice-final-command)
+;; ;; I hate you lsp-mode
+;; (setq lsp-keymap-prefix "C-c l")
+;; (setq lsp-signature-auto-activate nil)
+;; (setq lsp-inlay-hint-enable t)
+;; ;; Semantic highlighting is incredibly slow
+;; ;; (setq lsp-semantic-tokens-enable t)
 
-(use-package dap-mode)
+;; (use-package lsp-mode
+;;   :after meow
+;;   :hook
+;;   (lsp-mode . lsp-enable-which-key-integration)
+;;   ;; (lsp-mode . lsp-inlay-hints-mode)
+;;   :custom (lsp-nix-nil-formatter ["alejandra" "--quiet"])
+;;   :commands (lsp eglot-ensure))
+
+;; (use-package lsp-ui :commands lsp-ui-mode)
+
+;; (defun lsp-booster--advice-json-parse (old-fn &rest args)
+;;   "Try to parse bytecode instead of json."
+;;   (or
+;;    (when (equal (following-char) ?#)
+;;      (let ((bytecode (read (current-buffer))))
+;;        (when (byte-code-function-p bytecode)
+;;          (funcall bytecode))))
+;;    (apply old-fn args)))
+;; (advice-add (if (progn (require 'json)
+;;                        (fboundp 'json-parse-buffer))
+;;                 'json-parse-buffer
+;;               'json-read)
+;;             :around
+;;             #'lsp-booster--advice-json-parse)
+
+;; (defun lsp-booster--advice-final-command (old-fn cmd &optional test?)
+;;   "Prepend emacs-lsp-booster command to lsp CMD."
+;;   (let ((orig-result (funcall old-fn cmd test?)))
+;;     (if (and (not test?)                             ;; for check lsp-server-present?
+;;              (not (file-remote-p default-directory)) ;; see lsp-resolve-final-command, it would add extra shell wrapper
+;;              lsp-use-plists
+;;              (not (functionp 'json-rpc-connection))  ;; native json-rpc
+;;              (executable-find "emacs-lsp-booster"))
+;;         (progn
+;;           (when-let ((command-from-exec-path (executable-find (car orig-result))))  ;; resolve command from exec-path (in case not found in $PATH)
+;;             (setcar orig-result command-from-exec-path))
+;;           (message "Using emacs-lsp-booster for %s!" orig-result)
+;;           (cons "emacs-lsp-booster" orig-result))
+;;       orig-result)))
+;; (advice-add 'lsp-resolve-final-command :around #'lsp-booster--advice-final-command)
+
+;; (use-package dap-mode)
 
 (add-hook 'c-ts-mode-hook
           (lambda ()
             (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
             (setq c-ts-mode-indent-offset 4)
-            (lsp-deferred)))
+            (eglot-ensure)))
 
 (add-hook 'c++-ts-mode-hook
           (lambda ()
             (setq-default c++-ts-mode-indent-style #'linux)
             (setq c++-ts-mode-indent-offset 4)
-            (lsp-deferred)))
+            (eglot-ensure)))
 
-(add-hook 'js-ts-mode-hook         #'lsp-deferred)
-(add-hook 'typescript-ts-mode-hook #'lsp-deferred)
+(add-hook 'js-ts-mode-hook         #'eglot-ensure)
+(add-hook 'typescript-ts-mode-hook #'eglot-ensure)
 
 (use-package nix-ts-mode
   :if (eq system-type 'gnu/linux)
   :mode "\\.nix\\'"
-  :hook (nix-ts-mode . lsp-deferred))
+  :hook (nix-ts-mode . eglot-ensure))
 
 (use-package rust-mode
   :init (setq rust-mode-treesitter-derive t)
-  :hook (rust-ts-mode . lsp-deferred))
+  :hook (rust-ts-mode . eglot-ensure))
+
+(add-hook 'toml-ts-mode-hook #'eglot-ensure)
 
 (use-package tuareg
   :hook
@@ -414,28 +478,28 @@
                    (setq-local comment-continue "   ")
                    (when (functionp 'prettify-symbols-mode)
                      (prettify-symbols-mode))
-                   (lsp-deferred))))
+                   (eglot-ensure))))
 
 (use-package haskell-ts-mode
   :mode "\\.hs\\'"
   :custom (haskell-ts-highlight-signature t)
   :hook
-  (haskell-ts-mode . lsp-deferred)
+  (haskell-ts-mode . eglot-ensure)
   (haskell-ts-mode . prettify-symbols-mode))
 
 (use-package zig-ts-mode
   :mode "\\.zig\\'"
-  :hook (zig-ts-mode . lsp-deferred))
+  :hook (zig-ts-mode . eglot-ensure))
 
 (use-package markdown-mode
   :mode ("README\\.md\\'" . gfm-mode)
   :custom (markdown-fontify-code-blocks-natively t))
 
-(add-hook 'asm-mode-hook #'lsp-deferred)
+(add-hook 'asm-mode-hook #'eglot-ensure)
 
 (use-package nasm-mode
   :mode "\\.nasm\\'"
-  :hook (nasm-mode . lsp-deferred))
+  :hook (nasm-mode . eglot-ensure))
 
 ;; === MAGIT ===
 
@@ -443,3 +507,4 @@
 
 (use-package magit
   :bind ("C-c v" . magit))
+
