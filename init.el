@@ -367,6 +367,10 @@
   :hook (elpaca-after-init . envrc-global-mode)
   :bind ("C-c e" . envrc-command-map))
 
+(use-package exec-path-from-shell
+ :config (when (memq window-system '(mac ns))
+           (exec-path-from-shell-initialize)))
+
 (use-package eglot
   :ensure nil ; Built-in package
   :init (fset #'jsonrpc--log-event #'ignore)
