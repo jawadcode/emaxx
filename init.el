@@ -76,37 +76,11 @@
   (doom-themes-enable-italic t)
   :config (load-theme 'doom-material-dark t))
 
-;; (use-package standard-themes
-;;   :custom
-;;   (standard-themes-bold-constructs t)
-;;   (standard-themes-italic-constructs t)
-;;   (standard-themes-disable-other-themes t)
-;;   (standard-themes-mixed-fonts t)
-;;   (standard-themes-variable-pitch-ui t)
-;;   (standard-themes-prompts '(extrabold italic))
-;;   ;; (standard-themes-to-toggle '(standard-light standard-dark))
-;;   ;; (standard-themes-to-rotate '(standard-light standard-light-tinted standard-dark standard-dark-tinted))
-;;   (standard-themes-headings
-;;    '((0 . (variable-pitch light 1.9))
-;;      (1 . (variable-pitch light 1.8))
-;;      (2 . (variable-pitch light 1.7))
-;;      (3 . (variable-pitch semilight 1.6))
-;;      (4 . (variable-pitch semilight 1.5))
-;;      (5 . (variable-pitch 1.4))
-;;      (6 . (variable-pitch 1.3))
-;;      (7 . (variable-pitch 1.2))
-;;      (agenda-date . (1.3))
-;;      (agenda-structure . (variable-pitch light 1.8))
-;;      (t . (variable-pitch 1.1))))
-;;   :config (standard-themes-load-theme 'standard-light-tinted)
-;;   ;; :bind (("<f5>"   . standard-themes-toggle)
-;;   ;;        ("M-<f5>" . standard-themes-rotate))
-;;   )
-
 (use-package mood-line
   :custom (mood-line-glyph-alist mood-line-glyphs-fira-code)
   :config (mood-line-mode))
 
+;; Jank AF - Kinda works in conjunction with standard-themes
 ;; (use-package mixed-pitch
 ;;   :hook (text-mode . mixed-pitch-mode))
 
@@ -224,9 +198,9 @@
   (meow-setup)
   (meow-global-mode 1))
 
-;; (use-package meow-tree-sitter
-;;   :after meow
-;;   :hook (meow-mode . meow-tree-sitter-register-defaults))
+(use-package meow-tree-sitter
+  :after meow
+  :hook (meow-mode . meow-tree-sitter-register-defaults))
 
 (elpaca-wait) ;; Forces elpaca to eagerly load preceding packages
 
@@ -296,16 +270,16 @@
 
 ;; == EDITOR ==
 
-;; (use-package treesit-auto
-;;   :demand t
-;;   :custom (treesit-auto-install 'p)
-;;   :init (setq treesit-font-lock-level 4)
-;;   :config
-;;   (treesit-auto-add-to-auto-mode-alist 'all)
-;;   (global-treesit-auto-mode))
+(use-package treesit-auto
+  :demand t
+  :custom (treesit-auto-install 'p)
+  :init (setq treesit-font-lock-level 4)
+  :config
+  (treesit-auto-add-to-auto-mode-alist 'all)
+  (global-treesit-auto-mode))
 
-(use-package tree-sitter :demand t :config (global-tree-sitter-mode))
-(use-package tree-sitter-langs :demand t)
+;; (use-package tree-sitter :demand t :config (global-tree-sitter-mode))
+;; (use-package tree-sitter-langs :demand t)
 
 (use-package ligature
   :config
@@ -377,12 +351,12 @@
   (when (eq system-type 'gnu/linux)
     (setq-default eglot-workspace-configuration
                   '(:nil (:formatting (:command ["alejandra"]))))
-    (add-to-list 'eglot-server-programs '(nix-mode . ("nil"))))
+    (add-to-list 'eglot-server-programs '(nix-ts-mode . ("nil"))))
   (add-to-list 'eglot-server-programs
-               '(conf-toml-mode . ("taplo" "lsp" "stdio")))
+               '(toml-ts-mode . ("taplo" "lsp" "stdio")))
   (add-to-list 'eglot-server-programs
-               '(haskell-mode . ("haskell-language-server-wrapper" "--lsp")))
-  :hook (python-mode . eglot-ensure)
+               '(haskell-ts-mode . ("haskell-language-server-wrapper" "--lsp")))
+  :hook (python-ts-mode . eglot-ensure)
   :bind ( :map eglot-mode-map
           ("C-c l d" . xref-find-definitions)
           ("C-c l a" . eglot-code-actions)
@@ -402,24 +376,29 @@
 
 (use-package eldoc-box :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode))
 
-(defun prog-mode-setup ()
-  (tree-sitter-hl-mode)
-  (eglot-ensure))
+;; (defun eglot-ensure ()
+;;   (tree-sitter-hl-mode)
+;;   (eglot-ensure))
 
-(add-hook 'c-mode-hook #'prog-mode-setup)
-(add-hook 'c++-mode-hook #'prog-mode-setup)
+(add-hook 'c-or-c++-mode
+          (lambda ()
+            (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
+            (setq c-ts-mode-indent-offset 4)
+            (eglot-ensure)))
 
-(add-hook 'js-mode-hook         #'prog-mode-setup)
-(add-hook 'typescript-mode-hook #'prog-mode-setup)
+(add-hook 'js-ts-mode-hook         #'eglot-ensure)
+(add-hook 'typescript-ts-mode-hook #'eglot-ensure)
 
-(use-package nix-mode
+(use-package nix-ts-mode
   :if (eq system-type 'gnu/linux)
   :mode "\\.nix\\'"
-  :hook (nix-mode . prog-mode-setup))
+  :hook (nix-ts-mode . eglot-ensure))
 
-(use-package rust-mode :hook (rust-mode . prog-mode-setup))
+(use-package rust-mode
+  :init (setq rust-mode-treesitter-derive t)
+  :hook (rust-ts-mode . eglot-ensure))
 
-(add-hook 'conf-toml-mode-hook #'prog-mode-setup)
+(add-hook 'toml-ts-mode-hook #'eglot-ensure)
 
 (use-package tuareg
   :hook
@@ -428,30 +407,29 @@
                    (setq-local comment-continue "   ")
                    (when (functionp 'prettify-symbols-mode)
                      (prettify-symbols-mode))
-                   (prog-mode-setup))))
+                   (eglot-ensure))))
 
-(use-package haskell-mode
+(use-package haskell-ts-mode
+  :mode "\\.hs\\'"
   :hook
-  (haskell-mode . prog-mode-setup)
-  (haskell-mode . prettify-symbols-mode))
+  (haskell-ts-mode . eglot-ensure)
+  (haskell-ts-mode . prettify-symbols-mode))
 
-(use-package zig-mode
+(use-package zig-ts-mode
   :mode "\\.\\(zig\\|zon\\)\\'"
-  :hook (zig-mode . prog-mode-setup))
+  :hook (zig-ts-mode . eglot-ensure))
 
 (use-package markdown-mode
   :mode ("README\\.md\\'" . gfm-mode)
   :custom (markdown-fontify-code-blocks-natively t))
 
-(add-hook 'asm-mode-hook #'prog-mode-setup)
+(add-hook 'asm-mode-hook #'eglot-ensure)
 
 (use-package nasm-mode
   :mode "\\.nasm\\'"
-  :hook (nasm-mode . prog-mode-setup))
+  :hook (nasm-mode . eglot-ensure))
 
 ;; === MAGIT ===
 
-(use-package transient)
-
-(use-package magit
-  :bind ("C-c v" . magit))
+;; (use-package magit
+;;   :bind ("C-c v" . magit))
