@@ -20,7 +20,10 @@
                       'emoji
                       (font-spec :family "Noto Color Emoji" :size 18))))
 
-(setq inhibit-startup-echo-area-message "qak")
+(setq inhibit-startup-echo-area-message (getenv "USER"))
+
+(setq-default tab-width 4)
+(setq-default indent-tabs-mode nil)
 
 ;; == ELPACA INITIALISATION ==
 
@@ -209,13 +212,11 @@
 (use-package emacs
   :ensure nil
   :hook
-  (text-mode . display-line-numbers-mode)
+  ;; (text-mode . display-line-numbers-mode)
   (prog-mode . (lambda ()
                  (display-line-numbers-mode)
                  (hl-line-mode)
-                 (electric-pair-mode)
-                 (indent-tabs-mode -1)
-                 (setq-default tab-width 4)))
+                 (electric-pair-mode)))
   :custom
   ;; === BACKUP FILES CONFIG ===
   (backup-by-copying t)                           ; don't clobber symlinks
@@ -227,7 +228,7 @@
   (kept-new-versions 6)
   (kept-old-versions 2)
   (version-control t)                             ; use versioned backups
-
+  (create-lockfiles nil)
   ;; Autosave files config
   (auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
   :bind (("C-+" . text-scale-increase)
@@ -237,6 +238,7 @@
          ("C-<tab>" . tab-line-switch-to-next-tab)
          ("C-<iso-lefttab>" . tab-line-switch-to-prev-tab))
   :config
+  (add-to-list 'auto-mode-alist '("\\.cabal\\'" . prog-mode))
   (global-auto-revert-mode)
   (global-tab-line-mode)
   (window-divider-mode))
@@ -413,7 +415,11 @@
   :mode "\\.hs\\'"
   :hook
   (haskell-ts-mode . eglot-ensure)
-  (haskell-ts-mode . prettify-symbols-mode))
+  (haskell-ts-mode . prettify-symbols-mode)
+  :bind ( :map haskell-ts-mode-map
+          ("C-c h g" . consult-hoogle)))
+
+(use-package consult-hoogle)
 
 (use-package zig-ts-mode
   :mode "\\.\\(zig\\|zon\\)\\'"
