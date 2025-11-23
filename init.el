@@ -1,4 +1,4 @@
-; Initialisation -*- lexical-binding: t -*-
+                                        ; Initialisation -*- lexical-binding: t -*-
 
 (defun set-font ()
   (progn
@@ -280,9 +280,6 @@
   (treesit-auto-add-to-auto-mode-alist 'all)
   (global-treesit-auto-mode))
 
-;; (use-package tree-sitter :demand t :config (global-tree-sitter-mode))
-;; (use-package tree-sitter-langs :demand t)
-
 (use-package ligature
   :config
   (ligature-set-ligatures
@@ -343,8 +340,8 @@
   :bind ("C-c e" . envrc-command-map))
 
 (use-package exec-path-from-shell
- :config (when (memq window-system '(mac ns))
-           (exec-path-from-shell-initialize)))
+  :config (when (memq window-system '(mac ns))
+            (exec-path-from-shell-initialize)))
 
 (use-package eglot
   :ensure nil ; Built-in package
@@ -377,10 +374,6 @@
   :config (eglot-booster-mode))
 
 (use-package eldoc-box :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode))
-
-;; (defun eglot-ensure ()
-;;   (tree-sitter-hl-mode)
-;;   (eglot-ensure))
 
 (add-hook 'c-or-c++-mode
           (lambda ()
@@ -435,7 +428,7 @@
   :mode "\\.nasm\\'"
   :hook (nasm-mode . eglot-ensure))
 
-;; === MAGIT ===
+;; === Magit ===
 
 ;; (use-package magit
 ;;   :bind ("C-c v" . magit))
