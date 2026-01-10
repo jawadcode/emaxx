@@ -1,4 +1,4 @@
-                                        ; Initialisation -*- lexical-binding: t -*-
+; Initialisation -*- lexical-binding: t -*-
 
 (defun set-font ()
   (progn
