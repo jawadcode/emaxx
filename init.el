@@ -280,9 +280,6 @@
   (treesit-auto-add-to-auto-mode-alist 'all)
   (global-treesit-auto-mode))
 
-;; (use-package tree-sitter :demand t :config (global-tree-sitter-mode))
-;; (use-package tree-sitter-langs :demand t)
-
 (use-package ligature
   :config
   (ligature-set-ligatures
@@ -343,8 +340,8 @@
   :bind ("C-c e" . envrc-command-map))
 
 (use-package exec-path-from-shell
- :config (when (memq window-system '(mac ns))
-           (exec-path-from-shell-initialize)))
+  :config (when (memq window-system '(mac ns))
+            (exec-path-from-shell-initialize)))
 
 (use-package eglot
   :ensure nil ; Built-in package
@@ -378,6 +375,7 @@
 
 (use-package eldoc-box :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode))
 
+<<<<<<< HEAD
 (use-package rust-mode
   :init (setq rust-mode-treesitter-derive t)
   :hook (rust-ts-mode . eglot-ensure))
@@ -389,6 +387,13 @@
 
 (add-hook 'c-ts-mode-hook #'qak/c-or-c++)
 (add-hook 'c++-ts-mode-hook #'qak/c-or-c++)
+=======
+(add-hook 'c-or-c++-mode
+          (lambda ()
+            (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
+            (setq c-ts-mode-indent-offset 4)
+            (eglot-ensure)))
+>>>>>>> 23cd59f4e76a4b7bbca76d7380d1aa5533e63d1e
 
 (add-hook 'js-ts-mode-hook         #'eglot-ensure)
 (add-hook 'typescript-ts-mode-hook #'eglot-ensure)
@@ -435,7 +440,7 @@
   :mode "\\.nasm\\'"
   :hook (nasm-mode . eglot-ensure))
 
-;; === MAGIT ===
+;; === Magit ===
 
 ;; (use-package magit
 ;;   :bind ("C-c v" . magit))
