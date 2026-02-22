@@ -375,7 +375,6 @@
 
 (use-package eldoc-box :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode))
 
-<<<<<<< HEAD
 (use-package rust-mode
   :init (setq rust-mode-treesitter-derive t)
   :hook (rust-ts-mode . eglot-ensure))
@@ -387,13 +386,6 @@
 
 (add-hook 'c-ts-mode-hook #'qak/c-or-c++)
 (add-hook 'c++-ts-mode-hook #'qak/c-or-c++)
-=======
-(add-hook 'c-or-c++-mode
-          (lambda ()
-            (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
-            (setq c-ts-mode-indent-offset 4)
-            (eglot-ensure)))
->>>>>>> 23cd59f4e76a4b7bbca76d7380d1aa5533e63d1e
 
 (add-hook 'js-ts-mode-hook         #'eglot-ensure)
 (add-hook 'typescript-ts-mode-hook #'eglot-ensure)
