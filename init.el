@@ -378,15 +378,17 @@
 
 (use-package eldoc-box :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode))
 
-;; (defun eglot-ensure ()
-;;   (tree-sitter-hl-mode)
-;;   (eglot-ensure))
+(use-package rust-mode
+  :init (setq rust-mode-treesitter-derive t)
+  :hook (rust-ts-mode . eglot-ensure))
 
-(add-hook 'c-or-c++-mode
-          (lambda ()
-            (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
-            (setq c-ts-mode-indent-offset 4)
-            (eglot-ensure)))
+(defun qak/c-or-c++ ()
+  (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
+  (setq c-ts-mode-indent-offset 4)
+  (eglot-ensure))
+
+(add-hook 'c-ts-mode-hook #'qak/c-or-c++)
+(add-hook 'c++-ts-mode-hook #'qak/c-or-c++)
 
 (add-hook 'js-ts-mode-hook         #'eglot-ensure)
 (add-hook 'typescript-ts-mode-hook #'eglot-ensure)
@@ -396,11 +398,9 @@
   :mode "\\.nix\\'"
   :hook (nix-ts-mode . eglot-ensure))
 
-(use-package rust-mode
-  :init (setq rust-mode-treesitter-derive t)
-  :hook (rust-ts-mode . eglot-ensure))
-
 (add-hook 'toml-ts-mode-hook #'eglot-ensure)
+
+(use-package meson-mode :hook (meson-mode . eglot-ensure))
 
 (use-package tuareg
   :hook

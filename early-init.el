@@ -22,5 +22,3 @@
 ;; break things
 (unless (eq system-type 'windows-nt)
   (setq selection-coding-system 'utf-8))
-
-(setenv "LSP_USE_PLISTS" "true")
