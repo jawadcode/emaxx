@@ -20,7 +20,10 @@
                       'emoji
                       (font-spec :family "Noto Color Emoji" :size 18))))
 
-(setq inhibit-startup-echo-area-message "qak")
+(setq inhibit-startup-echo-area-message (getenv "USER"))
+
+(setq-default tab-width 4)
+(setq-default indent-tabs-mode nil)
 
 ;; == ELPACA INITIALISATION ==
  
@@ -209,13 +212,11 @@
 (use-package emacs
   :ensure nil
   :hook
-  (text-mode . display-line-numbers-mode)
+  ;; (text-mode . display-line-numbers-mode)
   (prog-mode . (lambda ()
                  (display-line-numbers-mode)
                  (hl-line-mode)
-                 (electric-pair-mode)
-                 (indent-tabs-mode -1)
-                 (setq-default tab-width 4)))
+                 (electric-pair-mode)))
   :custom
   ;; === BACKUP FILES CONFIG ===
   (backup-by-copying t)                           ; don't clobber symlinks
@@ -227,7 +228,7 @@
   (kept-new-versions 6)
   (kept-old-versions 2)
   (version-control t)                             ; use versioned backups
-
+  (create-lockfiles nil)
   ;; Autosave files config
   (auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
   :bind (("C-+" . text-scale-increase)
@@ -237,6 +238,7 @@
          ("C-<tab>" . tab-line-switch-to-next-tab)
          ("C-<iso-lefttab>" . tab-line-switch-to-prev-tab))
   :config
+  (add-to-list 'auto-mode-alist '("\\.cabal\\'" . prog-mode))
   (global-auto-revert-mode)
   (global-tab-line-mode)
   (window-divider-mode))
@@ -277,9 +279,6 @@
   :config
   (treesit-auto-add-to-auto-mode-alist 'all)
   (global-treesit-auto-mode))
-
-;; (use-package tree-sitter :demand t :config (global-tree-sitter-mode))
-;; (use-package tree-sitter-langs :demand t)
 
 (use-package ligature
   :config
@@ -341,8 +340,8 @@
   :bind ("C-c e" . envrc-command-map))
 
 (use-package exec-path-from-shell
- :config (when (memq window-system '(mac ns))
-           (exec-path-from-shell-initialize)))
+  :config (when (memq window-system '(mac ns))
+            (exec-path-from-shell-initialize)))
 
 (use-package eglot
   :ensure nil ; Built-in package
@@ -376,15 +375,17 @@
 
 (use-package eldoc-box :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode))
 
-;; (defun eglot-ensure ()
-;;   (tree-sitter-hl-mode)
-;;   (eglot-ensure))
+(use-package rust-mode
+  :init (setq rust-mode-treesitter-derive t)
+  :hook (rust-ts-mode . eglot-ensure))
 
-(add-hook 'c-or-c++-mode
-          (lambda ()
-            (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
-            (setq c-ts-mode-indent-offset 4)
-            (eglot-ensure)))
+(defun qak/c-or-c++ ()
+  (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
+  (setq c-ts-mode-indent-offset 4)
+  (eglot-ensure))
+
+(add-hook 'c-ts-mode-hook #'qak/c-or-c++)
+(add-hook 'c++-ts-mode-hook #'qak/c-or-c++)
 
 (add-hook 'js-ts-mode-hook         #'eglot-ensure)
 (add-hook 'typescript-ts-mode-hook #'eglot-ensure)
@@ -394,11 +395,9 @@
   :mode "\\.nix\\'"
   :hook (nix-ts-mode . eglot-ensure))
 
-(use-package rust-mode
-  :init (setq rust-mode-treesitter-derive t)
-  :hook (rust-ts-mode . eglot-ensure))
-
 (add-hook 'toml-ts-mode-hook #'eglot-ensure)
+
+(use-package meson-mode :hook (meson-mode . eglot-ensure))
 
 (use-package tuareg
   :hook
@@ -413,7 +412,11 @@
   :mode "\\.hs\\'"
   :hook
   (haskell-ts-mode . eglot-ensure)
-  (haskell-ts-mode . prettify-symbols-mode))
+  (haskell-ts-mode . prettify-symbols-mode)
+  :bind ( :map haskell-ts-mode-map
+          ("C-c h g" . consult-hoogle)))
+
+(use-package consult-hoogle)
 
 (use-package zig-ts-mode
   :mode "\\.\\(zig\\|zon\\)\\'"
@@ -429,7 +432,7 @@
   :mode "\\.nasm\\'"
   :hook (nasm-mode . eglot-ensure))
 
-;; === MAGIT ===
+;; === Magit ===
 
 ;; (use-package magit
 ;;   :bind ("C-c v" . magit))
