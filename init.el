@@ -23,16 +23,16 @@
 (setq inhibit-startup-echo-area-message "qak")
 
 ;; == ELPACA INITIALISATION ==
-
-(defvar elpaca-installer-version 0.11)
+ 
+(defvar elpaca-installer-version 0.12)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
-(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+(defvar elpaca-sources-directory (expand-file-name "sources/" elpaca-directory))
 (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
                               :ref nil :depth 1 :inherit ignore
                               :files (:defaults "elpaca-test.el" (:exclude "extensions"))
-                              :build (:not elpaca--activate-package)))
-(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+                              :build (:not elpaca-activate)))
+(let* ((repo  (expand-file-name "elpaca/" elpaca-sources-directory))
        (build (expand-file-name "elpaca/" elpaca-builds-directory))
        (order (cdr elpaca-order))
        (default-directory repo))
@@ -327,14 +327,14 @@
 
 (use-package yasnippet-snippets)
 
-;; These two are only for NixOS
+;; These two are only for NixOS and Nix-Darwin
 
 (use-package inheritenv
-  :if (eq system-type 'gnu/linux)
+  :if (or (eq system-type 'gnu/linux) (eq system-type 'darwin))
   :ensure ( :wait t))
 
 (use-package envrc
-  :if (eq system-type 'gnu/linux)
+  :if (or (eq system-type 'gnu/linux) (eq system-type 'darwin))
   :ensure ( :wait t)
   :after meow
   :hook (elpaca-after-init . envrc-global-mode)
@@ -390,7 +390,7 @@
 (add-hook 'typescript-ts-mode-hook #'eglot-ensure)
 
 (use-package nix-ts-mode
-  :if (eq system-type 'gnu/linux)
+  :if (or (eq system-type 'gnu/linux) (eq system-type 'darwin))
   :mode "\\.nix\\'"
   :hook (nix-ts-mode . eglot-ensure))
 
