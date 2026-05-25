@@ -4,9 +4,9 @@ if (Test-Path -Path $emacsDir) { Remove-Item -Recurse -Force $emacsDir }
 
 New-Item -ItemType Directory $emacsDir
 
-New-Item "$emacsDir\early-init.el" -ItemType SymbolicLink -Target "$(Get-Location)\early-init.el"
-New-Item "$emacsDir\init.el" -ItemType SymbolicLink -Target "$(Get-Location)\init.el"
-New-Item "$emacsDir\load-env-vars.el" -ItemType SymbolicLink -Target "$(Get-Location)\load-env-vars.el"
+New-Item -ItemType SymbolicLink -Path "$emacsDir\early-init.el" -Target "$(Get-Location)\early-init.el"
+New-Item -ItemType SymbolicLink -Path "$emacsDir\init.el" -Target "$(Get-Location)\init.el"
+New-Item -ItemType SymbolicLink -Path "$emacsDir\load-env-vars" -Target "$(Get-Location)\load-env-vars"
 
 .\get-grammars.ps1
 

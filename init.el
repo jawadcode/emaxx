@@ -20,10 +20,12 @@
                       'emoji
                       (font-spec :family "Noto Color Emoji" :size 18))))
 
-(setq inhibit-startup-echo-area-message (getenv "USER"))
-
 (setq-default tab-width 4)
 (setq-default indent-tabs-mode nil)
+
+(when (eq system-type 'windows-nt)
+  (add-to-list 'load-path (file-name-concat user-emacs-directory "load-env-vars"))
+  (require 'load-env-vars))
 
 ;; == ELPACA INITIALISATION ==
  
@@ -99,8 +101,8 @@
 (defvar-keymap emaxx/window-map
   :doc "Window keybinds"
   "r" #'split-window-right
-  "d" #'split-window-below
-  "b" #'balance-windows
+  "b" #'split-window-below
+  "=" #'balance-windows
   "h" #'windmove-left
   "j" #'windmove-down
   "k" #'windmove-up
@@ -236,7 +238,8 @@
          ("C-<wheel-up>" . text-scale-increase)
          ("C-<wheel-down>" . text-scale-decrease)
          ("C-<tab>" . tab-line-switch-to-next-tab)
-         ("C-<iso-lefttab>" . tab-line-switch-to-prev-tab))
+         ("C-<iso-lefttab>" . tab-line-switch-to-prev-tab)
+         ("C-S-<tab>" . tab-line-switch-to-prev-tab))
   :config
   (add-to-list 'auto-mode-alist '("\\.cabal\\'" . prog-mode))
   (global-auto-revert-mode)
@@ -339,65 +342,78 @@
   :hook (elpaca-after-init . envrc-global-mode)
   :bind ("C-c e" . envrc-command-map))
 
-(use-package exec-path-from-shell
-  :config (when (memq window-system '(mac ns))
-            (exec-path-from-shell-initialize)))
+;; We use nix-darwin so the above is sufficient
+;; (use-package exec-path-from-shell
+;;   :config (when (memq window-system '(mac ns))
+;;             (exec-path-from-shell-initialize)))
 
-(use-package eglot
-  :ensure nil ; Built-in package
-  :init (fset #'jsonrpc--log-event #'ignore)
-  :config
-  (when (eq system-type 'gnu/linux)
-    (setq-default eglot-workspace-configuration
-                  '(:nil (:formatting (:command ["alejandra"]))))
-    (add-to-list 'eglot-server-programs '(nix-ts-mode . ("nil"))))
-  (add-to-list 'eglot-server-programs
-               '(toml-ts-mode . ("taplo" "lsp" "stdio")))
-  (add-to-list 'eglot-server-programs
-               '(haskell-ts-mode . ("haskell-language-server-wrapper" "--lsp")))
-  :hook (python-ts-mode . eglot-ensure)
-  :bind ( :map eglot-mode-map
-          ("C-c l d" . xref-find-definitions)
-          ("C-c l a" . eglot-code-actions)
-          ("C-c l c" . eglot-code-action-quickfix)
-          ("C-c l r" . eglot-rename)
-          ("C-c l f" . eglot-format)
-          ("C-c l n" . eglot-reconnect)
-          ("C-c l i" . consult-imenu))
-  :commands eglot-ensure)
+;; (use-package eglot
+;;   :ensure nil ; Built-in package
+;;   :init (fset #'jsonrpc--log-event #'ignore)
+;;   :config
+;;   (when (eq system-type 'gnu/linux)
+;;     (setq-default eglot-workspace-configuration
+;;                   '(:nil (:formatting (:command ["alejandra"]))))
+;;     (add-to-list 'eglot-server-programs '(nix-ts-mode . ("nil"))))
+;;   (add-to-list 'eglot-server-programs
+;;                '(toml-ts-mode . ("taplo" "lsp" "stdio")))
+;;   (add-to-list 'eglot-server-programs
+;;                '(haskell-ts-mode . ("haskell-language-server-wrapper" "--lsp")))
+;;   :hook (python-ts-mode . eglot-ensure)
+;;   :bind ( :map eglot-mode-map
+;;           ("C-c l d" . xref-find-definitions)
+;;           ("C-c l a" . eglot-code-actions)
+;;           ("C-c l c" . eglot-code-action-quickfix)
+;;           ("C-c l r" . eglot-rename)
+;;           ("C-c l f" . eglot-format)
+;;           ("C-c l n" . eglot-reconnect)
+;;           ("C-c l i" . consult-imenu))
+;;   :commands eglot-ensure)
 
-(use-package eglot-booster
-  :ensure (eglot-booster
-           :host github
-           :repo "jdtsmith/eglot-booster")
-  :after eglot
-  :config (eglot-booster-mode))
+(use-package lsp-mode
+  :custom
+  (lsp-keymap-prefix "C-c l")
+  (lsp-idle-delay 0.5)
+  (lsp-nix-nil-formatter ["alejandra"])
+  :hook (lsp-mode . lsp-enable-which-key-integration)
+  :commands (lsp-mode lsp lsp-deferred))
 
-(use-package eldoc-box :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode))
+(use-package lsp-ui :commands lsp-ui-mode)
+
+(use-package dap-mode)
+
+;; (use-package eglot-booster
+;;   :ensure (eglot-booster
+;;            :host github
+;;            :repo "jdtsmith/eglot-booster")
+;;   :after eglot
+;;   :config (eglot-booster-mode))
+
+;; (use-package eldoc-box :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode))
 
 (use-package rust-mode
   :init (setq rust-mode-treesitter-derive t)
-  :hook (rust-ts-mode . eglot-ensure))
+  :hook (rust-ts-mode . lsp-deferred))
 
 (defun qak/c-or-c++ ()
   (setq-default c-ts-mode-indent-style #'linux) ; A rough approximation of the LLVM style, `clang-format' can deal with it anyways
   (setq c-ts-mode-indent-offset 4)
-  (eglot-ensure))
+  (lsp-deferred))
 
 (add-hook 'c-ts-mode-hook #'qak/c-or-c++)
 (add-hook 'c++-ts-mode-hook #'qak/c-or-c++)
 
-(add-hook 'js-ts-mode-hook         #'eglot-ensure)
-(add-hook 'typescript-ts-mode-hook #'eglot-ensure)
+(add-hook 'js-ts-mode-hook         #'lsp-deferred)
+(add-hook 'typescript-ts-mode-hook #'lsp-deferred)
 
 (use-package nix-ts-mode
   :if (or (eq system-type 'gnu/linux) (eq system-type 'darwin))
   :mode "\\.nix\\'"
-  :hook (nix-ts-mode . eglot-ensure))
+  :hook (nix-ts-mode . lsp-deferred))
 
-(add-hook 'toml-ts-mode-hook #'eglot-ensure)
+(add-hook 'toml-ts-mode-hook #'lsp-deferred)
 
-(use-package meson-mode :hook (meson-mode . eglot-ensure))
+(use-package meson-mode :hook (meson-mode . lsp-deferred))
 
 (use-package tuareg
   :hook
@@ -406,12 +422,12 @@
                    (setq-local comment-continue "   ")
                    (when (functionp 'prettify-symbols-mode)
                      (prettify-symbols-mode))
-                   (eglot-ensure))))
+                   (lsp-deferred))))
 
 (use-package haskell-ts-mode
   :mode "\\.hs\\'"
   :hook
-  (haskell-ts-mode . eglot-ensure)
+  (haskell-ts-mode . lsp-deferred)
   (haskell-ts-mode . prettify-symbols-mode)
   :bind ( :map haskell-ts-mode-map
           ("C-c h g" . consult-hoogle)))
@@ -420,19 +436,16 @@
 
 (use-package zig-ts-mode
   :mode "\\.\\(zig\\|zon\\)\\'"
-  :hook (zig-ts-mode . eglot-ensure))
+  :hook (zig-ts-mode . lsp-deferred))
 
 (use-package markdown-mode
   :mode ("README\\.md\\'" . gfm-mode)
   :custom (markdown-fontify-code-blocks-natively t))
 
-(add-hook 'asm-mode-hook #'eglot-ensure)
+(add-hook 'asm-mode-hook #'lsp-deferred)
 
-(use-package nasm-mode
-  :mode "\\.nasm\\'"
-  :hook (nasm-mode . eglot-ensure))
+(use-package nasm-mode :mode "\\.nasm\\'" :hook (nasm-mode . lsp-deferred))
 
 ;; === Magit ===
 
-;; (use-package magit
-;;   :bind ("C-c v" . magit))
+(use-package magit :bind ("C-c v" . magit))

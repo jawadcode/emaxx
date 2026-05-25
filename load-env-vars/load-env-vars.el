@@ -1,6 +1,6 @@
 ; Setting up the environment -*- lexical-binding: t; -*-
 
-(setq env-file-path (file-name-concat (getenv "HOME") "env.el"))
+(setq env-file-path (file-name-concat user-emacs-directory "env.el"))
 
 (when (eq system-type 'windows-nt)
   (setq explicit-shell-file-name
@@ -15,7 +15,7 @@
                       "Run `emacs --script path/to/emaxx/gen-env-file.el`."))
       (with-temp-buffer
         (insert-file-contents file)
-        (when-let (env (read (current-buffer)))
+        (when-let* ((env (read (current-buffer))))
           (let ((tz (getenv-internal "TZ")))
             (setq-default
              process-environment
@@ -26,9 +26,11 @@
              shell-file-name
              (or (getenv "SHELL")
                  (default-value 'shell-file-name)))
-            (when-let (newtz (getenv-internal "TZ"))
+            (when-let* ((newtz (getenv-internal "TZ")))
               (unless (equal tz newtz)
                 (set-time-zone-rule newtz))))
           env))))
 
   (load-env-file env-file-path))
+
+(provide 'load-env-vars)

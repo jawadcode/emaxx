@@ -3,10 +3,14 @@
 (setq package-enable-at-startup nil
       inhibit-splash-screen t
       inhibit-startup-message t
+      inhibit-startup-echo-area-message (getenv "USER")
       native-comp-async-report-warnings-errors 'silent
       byte-compile-warnings nil
       warning-minimum-level :error
       read-process-output-max (* 1024 1024))
+
+(setenv "LSP_USE_PLISTS" "true")
+;; (setenv "HOME" (getenv "USERPROFILE"))
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)
@@ -22,3 +26,6 @@
 ;; break things
 (unless (eq system-type 'windows-nt)
   (setq selection-coding-system 'utf-8))
+
+;; Don't want to be reminded I'm using GNU software
+(defun display-startup-echo-area-message () nil)

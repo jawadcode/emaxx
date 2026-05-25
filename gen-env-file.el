@@ -11,4 +11,4 @@
        ";; This file was automatically generated and will be overwritten.\n")
       (insert (pp-to-string process-environment))))
 
-(gen-env-file (file-name-concat (getenv "USERPROFILE") "env.el"))
+(gen-env-file (file-name-concat user-emacs-directory "env.el"))
